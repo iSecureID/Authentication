@@ -127,20 +127,20 @@
     <!-- Firebase v10 SDK Setup -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        // 🚨 Yahan signInWithPopup import kiya hai (Redirect hata diya) 🚨
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // 🔥 YAHAN APNA FIREBASE CONFIG ZAROOR DAALEIN 🔥
         const firebaseConfig = {
-  apiKey: "AIzaSyAdZb8GbRCLr0a-eQSl1QEQ8SuOmKQf1So",
-  authDomain: "iid-2026.firebaseapp.com",
-  databaseURL: "https://iid-2026-default-rtdb.firebaseio.com",
-  projectId: "iid-2026",
-  storageBucket: "iid-2026.firebasestorage.app",
-  messagingSenderId: "96823275377",
-  appId: "1:96823275377:web:95460e19e1002dca9a50d0",
-  measurementId: "G-711HPBRLNV"
-};
+            apiKey: "AIzaSyAdZb8GbRCLr0a-eQSl1QEQ8SuOmKQf1So",
+            authDomain: "iid-2026.firebaseapp.com",
+            databaseURL: "https://iid-2026-default-rtdb.firebaseio.com",
+            projectId: "iid-2026",
+            storageBucket: "iid-2026.firebasestorage.app",
+            messagingSenderId: "96823275377",
+            appId: "1:96823275377:web:95460e19e1002dca9a50d0",
+            measurementId: "G-711HPBRLNV"
+        };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -148,18 +148,15 @@
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
 
-        // URL Parameters & Redirect URI handling
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('redirect_uri')) {
             sessionStorage.setItem('redirect_uri', urlParams.get('redirect_uri'));
         }
         const redirectUri = sessionStorage.getItem('redirect_uri');
 
-        // Global User Data Variables
         let currentUser = null;
         let userDataDB = null;
 
-        // UI Elements
         const views =['loading-view', 'login-view', 'username-setup-view', 'home-view', 'profile-view', 'settings-view', 'consent-view'];
         const navbar = document.getElementById('navbar');
         const loadingText = document.getElementById('loading-text');
@@ -172,56 +169,59 @@
             else navbar.classList.add('hidden');
         }
 
-        // Handle Redirect Result
-        getRedirectResult(auth).then((result) => {
-            if(result) loadingText.innerText = "Processing Data...";
-        }).catch((error) => {
-            console.error("Auth Error:", error);
-            alert("Error: " + error.message);
-            switchView('login-view');
-        });
-
-        // 🟢 AUTH STATE LISTENER
+        // 🟢 AUTH STATE LISTENER (Runs without page reload)
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
                 loadingText.innerText = "Fetching Profile...";
                 
-                const userRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(userRef);
+                try {
+                    const userRef = doc(db, "users", user.uid);
+                    const docSnap = await getDoc(userRef);
 
-                if (!docSnap.exists()) {
-                    // 1. NEW USER - Show Username Setup
-                    const defaultUsername = user.email.split('@')[0];
-                    document.getElementById('setup-username-input').value = defaultUsername;
-                    switchView('username-setup-view');
-                } else {
-                    // 2. EXISTING USER
-                    userDataDB = docSnap.data();
-                    document.getElementById('nav-avatar').src = userDataDB.photoURL || "https://via.placeholder.com/150";
-                    
-                    if(redirectUri) {
-                        showConsentUI();
+                    if (!docSnap.exists()) {
+                        // Naya User Hai - Setup Screen dikhao
+                        const defaultUsername = user.email.split('@')[0];
+                        document.getElementById('setup-username-input').value = defaultUsername;
+                        switchView('username-setup-view');
                     } else {
-                        switchView('home-view', true);
+                        // Puraana User Hai - Data set karo
+                        userDataDB = docSnap.data();
+                        document.getElementById('nav-avatar').src = userDataDB.photoURL || "https://via.placeholder.com/150";
+                        
+                        if(redirectUri) {
+                            showConsentUI();
+                        } else {
+                            switchView('home-view', true);
+                        }
                     }
+                } catch (error) {
+                    console.error("Firestore Error:", error);
+                    alert("Database Error: " + error.message);
                 }
             } else {
                 // Not logged in
                 if(redirectUri) {
-                    loadingText.innerText = "External App Login Request...";
-                    setTimeout(() => switchView('login-view'), 1000);
+                    switchView('login-view');
                 } else {
                     switchView('login-view');
                 }
             }
         });
 
-        // 🔵 GOOGLE LOGIN
-        document.getElementById('google-login-btn').addEventListener('click', () => {
+        // 🔵 GOOGLE LOGIN (Popup Mode - No Reload!)
+        document.getElementById('google-login-btn').addEventListener('click', async () => {
             switchView('loading-view');
-            loadingText.innerText = "Connecting to Google...";
-            signInWithRedirect(auth, provider);
+            loadingText.innerText = "Waiting for Google Login...";
+            
+            try {
+                // Popup se login hoga, page refresh bilkul nahi hoga
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error("Login Error:", error);
+                // Agar user ne popup close kar diya
+                switchView('login-view');
+            }
         });
 
         // 🔵 SUBMIT NEW USERNAME & REGISTER
@@ -232,7 +232,6 @@
             switchView('loading-view');
             loadingText.innerText = "Registering Account...";
 
-            // Generate 6 Digit Auth ID
             const authId = Math.floor(100000 + Math.random() * 900000).toString();
 
             const newUserObj = {
@@ -264,11 +263,11 @@
             }
         });
 
-        // 🔵 NAVBAR NAVIGATION LOGIC
+        // 🔵 NAVBAR NAVIGATION
         document.getElementById('nav-logo').addEventListener('click', () => switchView('home-view', true));
         
         document.getElementById('nav-profile').addEventListener('click', () => {
-            document.getElementById('profile-avatar').src = userDataDB.photoURL;
+            document.getElementById('profile-avatar').src = userDataDB.photoURL || "https://via.placeholder.com/150";
             document.getElementById('profile-username').innerText = "@" + userDataDB.username;
             document.getElementById('profile-auth-id').innerText = userDataDB.authId;
             switchView('profile-view', true);
@@ -326,7 +325,6 @@
             
             try {
                 const idToken = await currentUser.getIdToken();
-                // Send back Token, Username, and Auth ID securely
                 const finalRedirect = `${redirectUri}?token=${idToken}&username=${userDataDB.username}&auth_id=${userDataDB.authId}`;
                 
                 sessionStorage.removeItem('redirect_uri');
