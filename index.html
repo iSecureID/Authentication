@@ -14,13 +14,17 @@
 
         <!-- Loading View -->
         <div id="loading-view" class="block">
-            <p class="text-gray-500">Checking authentication...</p>
+            <svg class="animate-spin h-8 w-8 text-indigo-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p id="loading-text" class="text-gray-500">Checking system...</p>
         </div>
 
         <!-- Login View -->
         <div id="login-view" class="hidden">
             <p class="text-gray-600 mb-4">Login to connect with the requested app.</p>
-            <button id="google-login-btn" class="w-full bg-red-500 text-white font-bold py-2 px-4 rounded hover:bg-red-600 transition">
+            <button id="google-login-btn" class="w-full bg-red-500 text-white font-bold py-2 px-4 rounded hover:bg-red-600 transition flex items-center justify-center gap-2">
                 Sign in with Google
             </button>
         </div>
@@ -32,6 +36,7 @@
                 <p id="user-name" class="font-bold text-lg"></p>
                 <p id="user-email" class="text-sm text-gray-500"></p>
             </div>
+            <p class="text-green-600 font-semibold mb-2">Registration Successful!</p>
             <p class="text-gray-700 mb-6 border-t pt-4">
                 An external application is requesting access to your profile.
             </p>
@@ -47,86 +52,103 @@
     <!-- Firebase v10 SDK Setup -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        // Yahan signInWithPopup ki jagah signInWithRedirect aur getRedirectResult import kiya hai
         import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // YAHAN APNA FIREBASE CONFIG DAALEIN
+        // 🔥 YAHAN APNA FIREBASE CONFIG ZAROOR DAALEIN 🔥
         const firebaseConfig = {
-  apiKey: "AIzaSyAdZb8GbRCLr0a-eQSl1QEQ8SuOmKQf1So",
-  authDomain: "iid-2026.firebaseapp.com",
-  databaseURL: "https://iid-2026-default-rtdb.firebaseio.com",
-  projectId: "iid-2026",
-  storageBucket: "iid-2026.firebasestorage.app",
-  messagingSenderId: "96823275377",
-  appId: "1:96823275377:web:95460e19e1002dca9a50d0",
-  measurementId: "G-711HPBRLNV"
-};
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
+        
+        // Yah parameter Google ko force karta hai ki wo humesha Account Select karne ka option de
+        provider.setCustomParameters({ prompt: 'select_account' });
 
-        // Get URL Parameters
+        // Get URL Parameters aur Session set karein
         const urlParams = new URLSearchParams(window.location.search);
-        // Kyunki redirect hone ke baad URL change ho jata hai, session storage mein save karna zaroori hai
         if (urlParams.get('redirect_uri')) {
             sessionStorage.setItem('redirect_uri', urlParams.get('redirect_uri'));
         }
         const redirectUri = sessionStorage.getItem('redirect_uri');
 
-        // UI Elements
         const viewLoading = document.getElementById('loading-view');
         const viewLogin = document.getElementById('login-view');
         const viewConsent = document.getElementById('consent-view');
+        const loadingText = document.getElementById('loading-text');
 
-        // Check if returning from Google Login Redirect
-        getRedirectResult(auth).catch((error) => {
-            console.error("Login Redirect Error:", error);
-            alert("Login Error: " + error.message);
+        // Check if returning from Google Redirect
+        getRedirectResult(auth).then((result) => {
+            if(result) {
+                loadingText.innerText = "Processing Profile...";
+            }
+        }).catch((error) => {
+            console.error("Redirect Error:", error);
+            alert("Google Auth Error: " + error.message);
+            viewLoading.classList.add('hidden');
+            viewLogin.classList.remove('hidden');
         });
 
         // State change listener
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // User logged in hai -> Save profile to Firestore & Show Consent
+                loadingText.innerText = "Registering Data...";
                 await saveUserProfile(user);
                 showConsentUI(user);
             } else {
-                // User logged in nahi hai -> Show Login Screen
+                // User not logged in
                 viewLoading.classList.add('hidden');
                 viewLogin.classList.remove('hidden');
             }
         });
 
-        // Google Login Action (Redirect Method for Mobile/Web compatibility)
+        // Google Login Action
         document.getElementById('google-login-btn').addEventListener('click', () => {
-            // Popup ki jagah ab Redirect use hoga
-            signInWithRedirect(auth, provider);
+            loadingText.innerText = "Connecting to Google...";
+            viewLogin.classList.add('hidden');
+            viewLoading.classList.remove('hidden');
+            
+            try {
+                signInWithRedirect(auth, provider);
+            } catch(e) {
+                alert("Redirect Failed: " + e.message);
+            }
         });
 
-        // Save Data to Firestore
+        // Save Data to Firestore (Register user)
         async function saveUserProfile(user) {
-            const userRef = doc(db, "users", user.uid);
-            const docSnap = await getDoc(userRef);
-            
-            let username = user.email.split('@')[0];
+            try {
+                const userRef = doc(db, "users", user.uid);
+                const docSnap = await getDoc(userRef);
+                
+                let username = user.email.split('@')[0];
 
-            if (!docSnap.exists()) {
-                await setDoc(userRef, {
-                    uid: user.uid,
-                    email: user.email,
-                    name: user.displayName,
-                    username: username,
-                    photoURL: user.photoURL,
-                    createdAt: new Date()
-                });
+                if (!docSnap.exists()) {
+                    await setDoc(userRef, {
+                        uid: user.uid,
+                        email: user.email,
+                        name: user.displayName || username,
+                        username: username,
+                        photoURL: user.photoURL || "",
+                        createdAt: new Date()
+                    });
+                }
+            } catch (error) {
+                console.error("Database Error:", error);
+                alert("Database Error (Is your Firestore Rule fixed?): " + error.message);
             }
         }
 
-        // Show "Accept" Screen
+        // Show Consent UI
         function showConsentUI(user) {
             viewLoading.classList.add('hidden');
             viewLogin.classList.add('hidden');
@@ -137,35 +159,35 @@
             document.getElementById('user-email').innerText = user.email;
 
             if(!redirectUri) {
-                document.querySelector('#consent-view p').innerText = "Notice: Directly logged in. No external app to redirect to.";
+                document.querySelector('#consent-view p.text-gray-700').innerText = "Testing Mode: App is working perfectly. Provide redirect_uri in URL for external app flow.";
                 document.getElementById('accept-btn').disabled = true;
                 document.getElementById('accept-btn').classList.add('opacity-50', 'cursor-not-allowed');
             }
         }
 
-        // Accept Button Action (Redirect back to Third Party App)
+        // Accept & Continue
         document.getElementById('accept-btn').addEventListener('click', async () => {
             if(!redirectUri) return;
-
-            const idToken = await auth.currentUser.getIdToken();
-            const username = auth.currentUser.email.split('@')[0];
-
-            const finalRedirect = `${redirectUri}?token=${idToken}&username=${username}&email=${auth.currentUser.email}`;
             
-            // Clear session storage after process
-            sessionStorage.removeItem('redirect_uri');
-            
-            window.location.href = finalRedirect;
+            try {
+                const idToken = await auth.currentUser.getIdToken();
+                const username = auth.currentUser.email.split('@')[0];
+                const finalRedirect = `${redirectUri}?token=${idToken}&username=${username}&email=${auth.currentUser.email}`;
+                
+                sessionStorage.removeItem('redirect_uri');
+                window.location.href = finalRedirect;
+            } catch(e) {
+                alert("Token generation failed: " + e.message);
+            }
         });
 
-        // Cancel Button Action
+        // Cancel
         document.getElementById('cancel-btn').addEventListener('click', () => {
             if(redirectUri) {
                 sessionStorage.removeItem('redirect_uri');
                 window.location.href = `${redirectUri}?error=access_denied`;
             } else {
-                auth.signOut();
-                window.location.reload();
+                auth.signOut().then(() => window.location.reload());
             }
         });
     </script>
