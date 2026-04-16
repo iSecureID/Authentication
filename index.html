@@ -167,250 +167,311 @@
 
     </div>
 
-    <!-- Firebase v10 SDK Setup -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+   <!-- Replace ONLY the script section with this -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyAdZb8GbRCLr0a-eQSl1QEQ8SuOmKQf1So",
-            authDomain: "iid-2026.firebaseapp.com",
-            databaseURL: "https://iid-2026-default-rtdb.firebaseio.com",
-            projectId: "iid-2026",
-            storageBucket: "iid-2026.firebasestorage.app",
-            messagingSenderId: "96823275377",
-            appId: "1:96823275377:web:95460e19e1002dca9a50d0",
-            measurementId: "G-711HPBRLNV"
-        };
+    const firebaseConfig = {
+        apiKey: "AIzaSyAdZb8GbRCLr0a-eQSl1QEQ8SuOmKQf1So",
+        authDomain: "iid-2026.firebaseapp.com",
+        databaseURL: "https://iid-2026-default-rtdb.firebaseio.com",
+        projectId: "iid-2026",
+        storageBucket: "iid-2026.firebasestorage.app",
+        messagingSenderId: "96823275377",
+        appId: "1:96823275377:web:95460e19e1002dca9a50d0",
+        measurementId: "G-711HPBRLNV"
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app); 
-        const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app); 
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
 
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('redirect_uri')) {
-            sessionStorage.setItem('redirect_uri', urlParams.get('redirect_uri'));
-        }
-        const redirectUri = sessionStorage.getItem('redirect_uri');
-
-        // Show redirect domain in consent view
+    // ✅ FIX: URL Parameters handling
+    const urlParams = new URLSearchParams(window.location.search);
+    let redirectUri = null;
+    
+    if (urlParams.get('redirect_uri')) {
+        redirectUri = urlParams.get('redirect_uri');
+        sessionStorage.setItem('redirect_uri', redirectUri);
+        console.log('📍 Redirect URI set:', redirectUri);
+    } else {
+        redirectUri = sessionStorage.getItem('redirect_uri');
         if(redirectUri) {
-            try {
-                const domain = new URL(redirectUri).hostname;
-                document.getElementById('redirect-domain').innerText = `Requesting domain: ${domain}`;
-            } catch(e) {
-                document.getElementById('redirect-domain').innerText = redirectUri;
-            }
+            console.log('📍 Redirect URI from session:', redirectUri);
         }
+    }
 
-        let currentUser = null;
-        let userDataDB = null;
-        let unsubscribeUserSnapshot = null;
+    // Show redirect domain in consent view
+    if(redirectUri) {
+        try {
+            const domain = new URL(redirectUri).hostname;
+            document.getElementById('redirect-domain').innerText = `Requesting domain: ${domain}`;
+        } catch(e) {
+            document.getElementById('redirect-domain').innerText = redirectUri;
+        }
+    }
 
-        const views =['loading-view', 'login-view', 'username-setup-view', 'home-view', 'profile-view', 'settings-view', 'consent-view'];
-        const navbar = document.getElementById('navbar');
-        const loadingText = document.getElementById('loading-text');
+    let currentUser = null;
+    let userDataDB = null;
+    let unsubscribeUserSnapshot = null;
 
-        function switchView(viewId, showNav = false) {
-            views.forEach(v => document.getElementById(v).classList.add('hidden'));
-            document.getElementById(viewId).classList.remove('hidden');
+    const views = ['loading-view', 'login-view', 'username-setup-view', 'home-view', 'profile-view', 'settings-view', 'consent-view'];
+    const navbar = document.getElementById('navbar');
+    const loadingText = document.getElementById('loading-text');
+
+    function switchView(viewId, showNav = false) {
+        console.log('🔄 Switching to view:', viewId);
+        views.forEach(v => document.getElementById(v).classList.add('hidden'));
+        document.getElementById(viewId).classList.remove('hidden');
+        
+        if(showNav) navbar.classList.remove('hidden');
+        else navbar.classList.add('hidden');
+    }
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            console.log('👤 User authenticated:', user.email);
+            currentUser = user;
+            loadingText.innerText = "Fetching Profile securely...";
             
-            if(showNav) navbar.classList.remove('hidden');
-            else navbar.classList.add('hidden');
-        }
+            const currentView = views.find(v => !document.getElementById(v).classList.contains('hidden'));
+            if (currentView === 'login-view' || currentView === 'loading-view') {
+                switchView('loading-view');
+            }
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                loadingText.innerText = "Fetching Profile securely...";
-                
-                const currentView = views.find(v => !document.getElementById(v).classList.contains('hidden'));
-                if (currentView === 'login-view' || currentView === 'loading-view') {
-                    switchView('loading-view');
-                }
+            if (unsubscribeUserSnapshot) {
+                unsubscribeUserSnapshot();
+            }
 
-                if (unsubscribeUserSnapshot) {
-                    unsubscribeUserSnapshot();
-                }
+            unsubscribeUserSnapshot = onValue(ref(db, 'users/' + user.uid), (snapshot) => {
+                if (!snapshot.exists()) {
+                    console.log('🆕 New user - showing setup');
+                    const defaultUsername = user.email.split('@')[0];
+                    document.getElementById('setup-username-input').value = defaultUsername;
+                    switchView('username-setup-view');
+                } else {
+                    console.log('✅ Existing user - loading profile');
+                    userDataDB = snapshot.val();
+                    
+                    const avatarSrc = userDataDB.photoURL || "https://via.placeholder.com/150";
+                    document.getElementById('nav-avatar').src = avatarSrc;
+                    document.getElementById('profile-avatar').src = avatarSrc;
+                    document.getElementById('consent-avatar').src = avatarSrc;
+                    document.getElementById('profile-username').innerText = "@" + userDataDB.username;
+                    document.getElementById('profile-auth-id').innerText = userDataDB.authId;
+                    document.getElementById('consent-name').innerText = userDataDB.name || userDataDB.username;
+                    document.getElementById('consent-email').innerText = userDataDB.email;
+                    document.getElementById('api-key-display').value = userDataDB.apiKey || "No API Key Generated";
 
-                unsubscribeUserSnapshot = onValue(ref(db, 'users/' + user.uid), (snapshot) => {
-                    if (!snapshot.exists()) {
-                        const defaultUsername = user.email.split('@')[0];
-                        document.getElementById('setup-username-input').value = defaultUsername;
-                        switchView('username-setup-view');
-                    } else {
-                        userDataDB = snapshot.val();
-                        
-                        const avatarSrc = userDataDB.photoURL || "https://via.placeholder.com/150";
-                        document.getElementById('nav-avatar').src = avatarSrc;
-                        document.getElementById('profile-avatar').src = avatarSrc;
-                        document.getElementById('consent-avatar').src = avatarSrc;
-                        document.getElementById('profile-username').innerText = "@" + userDataDB.username;
-                        document.getElementById('profile-auth-id').innerText = userDataDB.authId;
-                        document.getElementById('consent-name').innerText = userDataDB.name || userDataDB.username;
-                        document.getElementById('consent-email').innerText = userDataDB.email;
-                        document.getElementById('api-key-display').value = userDataDB.apiKey || "No API Key Generated";
-
-                        const activeViewNow = views.find(v => !document.getElementById(v).classList.contains('hidden'));
-                        if (activeViewNow === 'loading-view' || activeViewNow === 'login-view' || activeViewNow === 'username-setup-view') {
-                            if(redirectUri) {
-                                switchView('consent-view');
-                            } else {
-                                switchView('home-view', true);
-                            }
+                    const activeViewNow = views.find(v => !document.getElementById(v).classList.contains('hidden'));
+                    if (activeViewNow === 'loading-view' || activeViewNow === 'login-view' || activeViewNow === 'username-setup-view') {
+                        if(redirectUri) {
+                            console.log('🔗 OAuth flow detected - showing consent');
+                            switchView('consent-view');
+                        } else {
+                            console.log('🏠 Normal login - showing home');
+                            switchView('home-view', true);
                         }
                     }
-                }, (error) => {
-                    console.error("Database Error:", error);
-                    alert("Database Error: Check Firebase rules!");
-                });
-
-            } else {
-                currentUser = null;
-                userDataDB = null;
-                if (unsubscribeUserSnapshot) {
-                    unsubscribeUserSnapshot(); 
-                    unsubscribeUserSnapshot = null;
                 }
+            }, (error) => {
+                console.error("❌ Database Error:", error);
+                alert("Database Error: " + error.message);
+            });
+
+        } else {
+            console.log('🚫 No user authenticated');
+            currentUser = null;
+            userDataDB = null;
+            if (unsubscribeUserSnapshot) {
+                unsubscribeUserSnapshot(); 
+                unsubscribeUserSnapshot = null;
+            }
+            switchView('login-view');
+        }
+    });
+
+    // Google Login
+    document.getElementById('google-login-btn').addEventListener('click', async () => {
+        switchView('loading-view');
+        loadingText.innerText = "Waiting for Google Login...";
+        
+        try {
+            const result = await signInWithPopup(auth, provider);
+            console.log('✅ Google login successful:', result.user.email);
+        } catch (error) {
+            console.error("❌ Login Error:", error);
+            
+            if (error.code === 'auth/popup-closed-by-user') {
+                switchView('login-view');
+            } else if (error.code === 'auth/unauthorized-domain') {
+                alert("⚠️ Domain not authorized!\n\nAdd 'isecureid.netlify.app' in:\nFirebase Console → Authentication → Settings → Authorized domains");
+                switchView('login-view');
+            } else {
+                alert(`Login Failed: ${error.message}`);
                 switchView('login-view');
             }
-        });
+        }
+    });
 
-        document.getElementById('google-login-btn').addEventListener('click', async () => {
-            switchView('loading-view');
-            loadingText.innerText = "Waiting for Google Login...";
-            
-            try {
-                await signInWithPopup(auth, provider);
-            } catch (error) {
-                console.error("Login Error:", error);
-                
-                if (error.code === 'auth/popup-closed-by-user') {
-                    switchView('login-view');
-                } else if (error.code === 'auth/unauthorized-domain') {
-                    alert("⚠️ Domain not authorized! Add isecureid.netlify.app in Firebase Console → Authentication → Settings → Authorized domains");
-                    switchView('login-view');
-                } else {
-                    alert(`Login Failed: ${error.message}`);
-                    switchView('login-view');
-                }
-            }
-        });
+    // Username Setup
+    document.getElementById('submit-setup-btn').addEventListener('click', async () => {
+        const usernameInput = document.getElementById('setup-username-input').value.trim();
+        if(!usernameInput) return alert("Username cannot be empty!");
+        if(usernameInput.length < 3) return alert("Username must be at least 3 characters!");
 
-        document.getElementById('submit-setup-btn').addEventListener('click', async () => {
-            const usernameInput = document.getElementById('setup-username-input').value.trim();
-            if(!usernameInput) return alert("Username cannot be empty!");
-            if(usernameInput.length < 3) return alert("Username must be at least 3 characters!");
+        const btn = document.getElementById('submit-setup-btn');
+        btn.disabled = true;
+        btn.innerText = "Registering...";
 
-            const btn = document.getElementById('submit-setup-btn');
-            btn.disabled = true;
-            btn.innerText = "Registering...";
+        const authId = Math.floor(100000 + Math.random() * 900000).toString();
 
-            const authId = Math.floor(100000 + Math.random() * 900000).toString();
+        const newUserObj = {
+            uid: currentUser.uid,
+            email: currentUser.email,
+            name: currentUser.displayName || usernameInput,
+            username: usernameInput,
+            photoURL: currentUser.photoURL || "",
+            authId: authId,
+            apiKey: "",
+            createdAt: Date.now()
+        };
 
-            const newUserObj = {
-                uid: currentUser.uid,
-                email: currentUser.email,
-                name: currentUser.displayName || usernameInput,
-                username: usernameInput,
-                photoURL: currentUser.photoURL || "",
-                authId: authId,
-                apiKey: "",
-                createdAt: Date.now()
-            };
-
-            try {
-                await set(ref(db, 'users/' + currentUser.uid), newUserObj);
-            } catch (error) {
-                console.error("Setup Error:", error);
-                alert("Database Setup Error: " + error.message);
-                btn.disabled = false;
-                btn.innerText = "Register & Continue";
-            }
-        });
-
-        document.getElementById('nav-logo').addEventListener('click', () => switchView('home-view', true));
-        document.getElementById('nav-profile').addEventListener('click', () => switchView('profile-view', true));
-        document.getElementById('nav-settings').addEventListener('click', () => switchView('settings-view', true));
-
-        document.getElementById('logout-btn').addEventListener('click', () => {
-            const btn = document.getElementById('logout-btn');
-            btn.innerText = "Logging out...";
-            signOut(auth).then(() => {
-                btn.innerText = "Log Out";
-                sessionStorage.clear();
-            }).catch((err) => {
-                alert("Logout Error: " + err.message);
-                btn.innerText = "Log Out";
-            });
-        });
-
-        document.getElementById('generate-api-btn').addEventListener('click', async () => {
-            const confirmGen = confirm("⚠️ Generating a new API Key will invalidate the old one. Continue?");
-            if(!confirmGen) return;
-
-            const btn = document.getElementById('generate-api-btn');
-            btn.innerText = "Generating...";
-            btn.disabled = true;
-
-            const newApiKey = "isecure_" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-
-            try {
-                await update(ref(db, 'users/' + currentUser.uid), { apiKey: newApiKey });
-                alert("✅ New API Key Generated Successfully!");
-            } catch (error) {
-                console.error("API Key Error:", error);
-                alert("Error: " + error.message);
-            }
-            
-            btn.innerText = "Generate New API Key";
+        try {
+            await set(ref(db, 'users/' + currentUser.uid), newUserObj);
+            console.log('✅ User registered successfully');
+        } catch (error) {
+            console.error("❌ Setup Error:", error);
+            alert("Database Setup Error: " + error.message);
             btn.disabled = false;
-        });
+            btn.innerText = "Register & Continue";
+        }
+    });
 
-        // Copy API Key
-        document.getElementById('copy-api-key').addEventListener('click', () => {
-            const apiKeyValue = document.getElementById('api-key-display').value;
-            if(apiKeyValue === "Not Generated Yet" || apiKeyValue === "No API Key Generated") {
-                return alert("Generate an API key first!");
-            }
-            navigator.clipboard.writeText(apiKeyValue).then(() => {
-                const btn = document.getElementById('copy-api-key');
-                btn.innerText = "✅";
-                setTimeout(() => btn.innerText = "📋", 2000);
-            });
-        });
+    // Navigation
+    document.getElementById('nav-logo').addEventListener('click', () => switchView('home-view', true));
+    document.getElementById('nav-profile').addEventListener('click', () => switchView('profile-view', true));
+    document.getElementById('nav-settings').addEventListener('click', () => switchView('settings-view', true));
 
-        document.getElementById('accept-btn').addEventListener('click', async () => {
-            if(!redirectUri) return;
-            const btn = document.getElementById('accept-btn');
-            btn.innerText = "Redirecting securely...";
-            btn.disabled = true;
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', () => {
+        const btn = document.getElementById('logout-btn');
+        btn.innerText = "Logging out...";
+        signOut(auth).then(() => {
+            btn.innerText = "Log Out";
+            sessionStorage.clear();
+        }).catch((err) => {
+            alert("Logout Error: " + err.message);
+            btn.innerText = "Log Out";
+        });
+    });
+
+    // Generate API Key
+    document.getElementById('generate-api-btn').addEventListener('click', async () => {
+        const confirmGen = confirm("⚠️ Generating a new API Key will invalidate the old one. Continue?");
+        if(!confirmGen) return;
+
+        const btn = document.getElementById('generate-api-btn');
+        btn.innerText = "Generating...";
+        btn.disabled = true;
+
+        const newApiKey = "isecure_" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+        try {
+            await update(ref(db, 'users/' + currentUser.uid), { apiKey: newApiKey });
+            alert("✅ New API Key Generated Successfully!");
+        } catch (error) {
+            console.error("❌ API Key Error:", error);
+            alert("Error: " + error.message);
+        }
+        
+        btn.innerText = "Generate New API Key";
+        btn.disabled = false;
+    });
+
+    // Copy API Key
+    document.getElementById('copy-api-key').addEventListener('click', () => {
+        const apiKeyValue = document.getElementById('api-key-display').value;
+        if(apiKeyValue === "Not Generated Yet" || apiKeyValue === "No API Key Generated") {
+            return alert("Generate an API key first!");
+        }
+        navigator.clipboard.writeText(apiKeyValue).then(() => {
+            const btn = document.getElementById('copy-api-key');
+            btn.innerText = "✅";
+            setTimeout(() => btn.innerText = "📋", 2000);
+        });
+    });
+
+    // ✅ CRITICAL FIX: Accept Button (OAuth Authorization)
+    document.getElementById('accept-btn').addEventListener('click', async () => {
+        if(!redirectUri) {
+            alert('⚠️ No redirect URI found!');
+            console.error('❌ redirectUri is null');
+            return;
+        }
+        
+        const btn = document.getElementById('accept-btn');
+        btn.innerText = "Redirecting securely...";
+        btn.disabled = true;
+        
+        try {
+            console.log('🔐 Getting ID Token for user:', currentUser.email);
+            const idToken = await currentUser.getIdToken();
+            console.log('✅ Token received (length):', idToken.length);
             
-            try {
-                const idToken = await currentUser.getIdToken();
-                const finalRedirect = `${redirectUri}${redirectUri.includes('?') ? '&' : '?'}token=${idToken}&username=${userDataDB.username}&auth_id=${userDataDB.authId}&email=${userDataDB.email}`;
-                
-                sessionStorage.removeItem('redirect_uri');
+            console.log('📊 Sending user data:', {
+                username: userDataDB.username,
+                authId: userDataDB.authId,
+                email: userDataDB.email
+            });
+            
+            // Check if redirect_uri already has query params
+            const separator = redirectUri.includes('?') ? '&' : '?';
+            
+            const params = new URLSearchParams({
+                token: idToken,
+                username: userDataDB.username,
+                auth_id: userDataDB.authId,
+                email: userDataDB.email
+            });
+            
+            const finalRedirect = `${redirectUri}${separator}${params.toString()}`;
+            
+            console.log('🚀 Final redirect URL:', finalRedirect);
+            console.log('🚀 Redirecting in 1 second...');
+            
+            // Clear session storage
+            sessionStorage.removeItem('redirect_uri');
+            
+            // Small delay for debugging
+            setTimeout(() => {
                 window.location.href = finalRedirect;
-            } catch(e) {
-                alert("Token error: " + e.message);
-                btn.innerText = "✅ Authorize Application";
-                btn.disabled = false;
-            }
-        });
+            }, 1000);
+            
+        } catch(e) {
+            console.error('❌ Token Error:', e);
+            alert("Token generation failed: " + e.message);
+            btn.innerText = "✅ Authorize Application";
+            btn.disabled = false;
+        }
+    });
 
-        document.getElementById('cancel-consent-btn').addEventListener('click', () => {
-            if(redirectUri) {
-                sessionStorage.removeItem('redirect_uri');
-                window.location.href = `${redirectUri}${redirectUri.includes('?') ? '&' : '?'}error=access_denied`;
-            } else {
-                switchView('home-view', true);
-            }
-        });
+    // Cancel Consent
+    document.getElementById('cancel-consent-btn').addEventListener('click', () => {
+        console.log('❌ User cancelled consent');
+        if(redirectUri) {
+            sessionStorage.removeItem('redirect_uri');
+            const separator = redirectUri.includes('?') ? '&' : '?';
+            window.location.href = `${redirectUri}${separator}error=access_denied`;
+        } else {
+            switchView('home-view', true);
+        }
+    });
 
-    </script>
+</script>
 </body>
 </html>
