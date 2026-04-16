@@ -6,14 +6,27 @@
     <title>My Custom Auth Provider</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
 
-    <div class="bg-white p-8 rounded-lg shadow-md w-96 text-center">
-        <!-- Logo / Title -->
-        <h2 class="text-2xl font-bold mb-6 text-indigo-600">MyAuth System</h2>
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md relative overflow-hidden">
+        
+        <!-- Main Navbar (Hidden on Login/Setup/Consent) -->
+        <div id="navbar" class="hidden flex justify-between items-center mb-6 border-b pb-4">
+            <h2 class="text-xl font-bold text-indigo-600 cursor-pointer" id="nav-logo">MyAuth</h2>
+            <div class="flex items-center gap-4">
+                <!-- Settings Icon -->
+                <button id="nav-settings" class="text-gray-500 hover:text-indigo-600 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </button>
+                <!-- Profile Avatar -->
+                <button id="nav-profile" class="focus:outline-none">
+                    <img id="nav-avatar" src="https://via.placeholder.com/150" class="w-8 h-8 rounded-full border-2 border-indigo-500">
+                </button>
+            </div>
+        </div>
 
-        <!-- Loading View -->
-        <div id="loading-view" class="block">
+        <!-- 1. Loading View -->
+        <div id="loading-view" class="block text-center py-10">
             <svg class="animate-spin h-8 w-8 text-indigo-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -21,39 +34,101 @@
             <p id="loading-text" class="text-gray-500">Checking system...</p>
         </div>
 
-        <!-- Login View -->
-        <div id="login-view" class="hidden">
-            <p class="text-gray-600 mb-4">Login to connect with the requested app.</p>
-            <button id="google-login-btn" class="w-full bg-red-500 text-white font-bold py-2 px-4 rounded hover:bg-red-600 transition flex items-center justify-center gap-2">
+        <!-- 2. Login View -->
+        <div id="login-view" class="hidden text-center py-6">
+            <h2 class="text-2xl font-bold mb-6 text-indigo-600">MyAuth System</h2>
+            <p class="text-gray-600 mb-6">Login or Register to continue.</p>
+            <button id="google-login-btn" class="w-full bg-red-500 text-white font-bold py-3 px-4 rounded shadow hover:bg-red-600 transition flex items-center justify-center gap-2">
                 Sign in with Google
             </button>
         </div>
 
-        <!-- Consent / Accept View -->
-        <div id="consent-view" class="hidden">
-            <div class="mb-4">
-                <img id="user-avatar" src="" class="w-16 h-16 rounded-full mx-auto mb-2 border-2 border-indigo-500">
-                <p id="user-name" class="font-bold text-lg"></p>
-                <p id="user-email" class="text-sm text-gray-500"></p>
+        <!-- 3. Username Setup View (New User) -->
+        <div id="username-setup-view" class="hidden text-center py-4">
+            <h2 class="text-xl font-bold mb-2 text-gray-800">Complete Registration</h2>
+            <p class="text-sm text-gray-500 mb-6">Choose a username for your account.</p>
+            
+            <div class="text-left mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Username</label>
+                <input type="text" id="setup-username-input" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter username">
             </div>
-            <p class="text-green-600 font-semibold mb-2">Registration Successful!</p>
-            <p class="text-gray-700 mb-6 border-t pt-4">
-                An external application is requesting access to your profile.
-            </p>
-            <button id="accept-btn" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded hover:bg-indigo-700 transition mb-2">
-                Accept & Continue
+            
+            <button id="submit-setup-btn" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded hover:bg-indigo-700 transition">
+                Register & Continue
             </button>
-            <button id="cancel-btn" class="w-full bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded hover:bg-gray-400 transition">
+        </div>
+
+        <!-- 4. Home View -->
+        <div id="home-view" class="hidden text-center py-10">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Welcome to MyAuth!</h2>
+            <p class="text-gray-600">You are securely logged in.</p>
+            <p class="mt-4 text-sm text-gray-500 bg-gray-50 p-4 rounded border">Use the top right menu to manage your profile or generate API keys for your apps.</p>
+        </div>
+
+        <!-- 5. Profile View -->
+        <div id="profile-view" class="hidden text-center">
+            <h2 class="text-xl font-bold mb-4 text-gray-800 text-left border-b pb-2">Your Profile</h2>
+            <img id="profile-avatar" src="" class="w-20 h-20 rounded-full mx-auto mb-4 border-4 border-indigo-100">
+            
+            <div class="text-left mb-4">
+                <label class="text-xs text-gray-500 uppercase font-bold">Username (Read-only)</label>
+                <div id="profile-username" class="bg-gray-100 p-2 rounded text-gray-700 font-mono mt-1"></div>
+            </div>
+            
+            <div class="text-left mb-6">
+                <label class="text-xs text-gray-500 uppercase font-bold">Authentication ID (6-digit)</label>
+                <div id="profile-auth-id" class="bg-gray-100 p-2 rounded text-gray-700 font-mono mt-1 tracking-widest text-lg"></div>
+            </div>
+
+            <button id="logout-btn" class="w-full bg-red-500 text-white font-bold py-2 px-4 rounded hover:bg-red-600 transition">
+                Log Out
+            </button>
+        </div>
+
+        <!-- 6. Settings View -->
+        <div id="settings-view" class="hidden text-left">
+            <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Developer Settings</h2>
+            
+            <div class="mb-6">
+                <label class="text-xs text-gray-500 uppercase font-bold">Your API Key</label>
+                <div class="flex mt-1 gap-2">
+                    <input type="text" id="api-key-display" readonly class="bg-gray-100 p-2 rounded text-gray-700 font-mono w-full text-sm outline-none" value="Not Generated Yet">
+                </div>
+                <p class="text-xs text-gray-400 mt-2">Use this API key to authenticate users in your 3rd party applications.</p>
+            </div>
+
+            <button id="generate-api-btn" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded hover:bg-indigo-700 transition">
+                Generate New API Key
+            </button>
+        </div>
+
+        <!-- 7. Consent / Accept View (OAuth Flow) -->
+        <div id="consent-view" class="hidden text-center py-4">
+            <div class="mb-4">
+                <img id="consent-avatar" src="" class="w-16 h-16 rounded-full mx-auto mb-2 border-2 border-indigo-500">
+                <p id="consent-name" class="font-bold text-lg"></p>
+                <p id="consent-email" class="text-sm text-gray-500"></p>
+            </div>
+            <div class="bg-indigo-50 border border-indigo-100 rounded p-4 mb-6">
+                <p class="text-gray-800 text-sm font-semibold">An external application is requesting access to your account.</p>
+                <p class="text-gray-500 text-xs mt-2">They will receive your Auth ID, Username, and Email.</p>
+            </div>
+            
+            <button id="accept-btn" class="w-full bg-green-500 text-white font-bold py-3 px-4 rounded shadow hover:bg-green-600 transition mb-3">
+                Authorize Application
+            </button>
+            <button id="cancel-consent-btn" class="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded hover:bg-gray-300 transition">
                 Cancel
             </button>
         </div>
+
     </div>
 
     <!-- Firebase v10 SDK Setup -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         // 🔥 YAHAN APNA FIREBASE CONFIG ZAROOR DAALEIN 🔥
         const firebaseConfig = {
@@ -65,131 +140,207 @@
             appId: "YOUR_APP_ID"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
-        
-        // Yah parameter Google ko force karta hai ki wo humesha Account Select karne ka option de
         provider.setCustomParameters({ prompt: 'select_account' });
 
-        // Get URL Parameters aur Session set karein
+        // URL Parameters & Redirect URI handling
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('redirect_uri')) {
             sessionStorage.setItem('redirect_uri', urlParams.get('redirect_uri'));
         }
         const redirectUri = sessionStorage.getItem('redirect_uri');
 
-        const viewLoading = document.getElementById('loading-view');
-        const viewLogin = document.getElementById('login-view');
-        const viewConsent = document.getElementById('consent-view');
+        // Global User Data Variables
+        let currentUser = null;
+        let userDataDB = null;
+
+        // UI Elements
+        const views =['loading-view', 'login-view', 'username-setup-view', 'home-view', 'profile-view', 'settings-view', 'consent-view'];
+        const navbar = document.getElementById('navbar');
         const loadingText = document.getElementById('loading-text');
 
-        // Check if returning from Google Redirect
+        function switchView(viewId, showNav = false) {
+            views.forEach(v => document.getElementById(v).classList.add('hidden'));
+            document.getElementById(viewId).classList.remove('hidden');
+            
+            if(showNav) navbar.classList.remove('hidden');
+            else navbar.classList.add('hidden');
+        }
+
+        // Handle Redirect Result
         getRedirectResult(auth).then((result) => {
-            if(result) {
-                loadingText.innerText = "Processing Profile...";
-            }
+            if(result) loadingText.innerText = "Processing Data...";
         }).catch((error) => {
-            console.error("Redirect Error:", error);
-            alert("Google Auth Error: " + error.message);
-            viewLoading.classList.add('hidden');
-            viewLogin.classList.remove('hidden');
+            console.error("Auth Error:", error);
+            alert("Error: " + error.message);
+            switchView('login-view');
         });
 
-        // State change listener
+        // 🟢 AUTH STATE LISTENER
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                loadingText.innerText = "Registering Data...";
-                await saveUserProfile(user);
-                showConsentUI(user);
-            } else {
-                // User not logged in
-                viewLoading.classList.add('hidden');
-                viewLogin.classList.remove('hidden');
-            }
-        });
-
-        // Google Login Action
-        document.getElementById('google-login-btn').addEventListener('click', () => {
-            loadingText.innerText = "Connecting to Google...";
-            viewLogin.classList.add('hidden');
-            viewLoading.classList.remove('hidden');
-            
-            try {
-                signInWithRedirect(auth, provider);
-            } catch(e) {
-                alert("Redirect Failed: " + e.message);
-            }
-        });
-
-        // Save Data to Firestore (Register user)
-        async function saveUserProfile(user) {
-            try {
+                currentUser = user;
+                loadingText.innerText = "Fetching Profile...";
+                
                 const userRef = doc(db, "users", user.uid);
                 const docSnap = await getDoc(userRef);
-                
-                let username = user.email.split('@')[0];
 
                 if (!docSnap.exists()) {
-                    await setDoc(userRef, {
-                        uid: user.uid,
-                        email: user.email,
-                        name: user.displayName || username,
-                        username: username,
-                        photoURL: user.photoURL || "",
-                        createdAt: new Date()
-                    });
+                    // 1. NEW USER - Show Username Setup
+                    const defaultUsername = user.email.split('@')[0];
+                    document.getElementById('setup-username-input').value = defaultUsername;
+                    switchView('username-setup-view');
+                } else {
+                    // 2. EXISTING USER
+                    userDataDB = docSnap.data();
+                    document.getElementById('nav-avatar').src = userDataDB.photoURL || "https://via.placeholder.com/150";
+                    
+                    if(redirectUri) {
+                        showConsentUI();
+                    } else {
+                        switchView('home-view', true);
+                    }
+                }
+            } else {
+                // Not logged in
+                if(redirectUri) {
+                    loadingText.innerText = "External App Login Request...";
+                    setTimeout(() => switchView('login-view'), 1000);
+                } else {
+                    switchView('login-view');
+                }
+            }
+        });
+
+        // 🔵 GOOGLE LOGIN
+        document.getElementById('google-login-btn').addEventListener('click', () => {
+            switchView('loading-view');
+            loadingText.innerText = "Connecting to Google...";
+            signInWithRedirect(auth, provider);
+        });
+
+        // 🔵 SUBMIT NEW USERNAME & REGISTER
+        document.getElementById('submit-setup-btn').addEventListener('click', async () => {
+            const usernameInput = document.getElementById('setup-username-input').value.trim();
+            if(!usernameInput) return alert("Username cannot be empty!");
+
+            switchView('loading-view');
+            loadingText.innerText = "Registering Account...";
+
+            // Generate 6 Digit Auth ID
+            const authId = Math.floor(100000 + Math.random() * 900000).toString();
+
+            const newUserObj = {
+                uid: currentUser.uid,
+                email: currentUser.email,
+                name: currentUser.displayName || usernameInput,
+                username: usernameInput,
+                photoURL: currentUser.photoURL || "",
+                authId: authId,
+                apiKey: "",
+                createdAt: new Date()
+            };
+
+            try {
+                await setDoc(doc(db, "users", currentUser.uid), newUserObj);
+                userDataDB = newUserObj;
+                
+                document.getElementById('nav-avatar').src = userDataDB.photoURL || "https://via.placeholder.com/150";
+
+                if(redirectUri) {
+                    showConsentUI();
+                } else {
+                    switchView('home-view', true);
                 }
             } catch (error) {
-                console.error("Database Error:", error);
-                alert("Database Error (Is your Firestore Rule fixed?): " + error.message);
+                console.error(error);
+                alert("Database Error: Check Firestore Rules!");
+                switchView('username-setup-view');
             }
+        });
+
+        // 🔵 NAVBAR NAVIGATION LOGIC
+        document.getElementById('nav-logo').addEventListener('click', () => switchView('home-view', true));
+        
+        document.getElementById('nav-profile').addEventListener('click', () => {
+            document.getElementById('profile-avatar').src = userDataDB.photoURL;
+            document.getElementById('profile-username').innerText = "@" + userDataDB.username;
+            document.getElementById('profile-auth-id').innerText = userDataDB.authId;
+            switchView('profile-view', true);
+        });
+
+        document.getElementById('nav-settings').addEventListener('click', () => {
+            document.getElementById('api-key-display').value = userDataDB.apiKey || "No API Key Generated";
+            switchView('settings-view', true);
+        });
+
+        // 🔵 LOGOUT
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            signOut(auth).then(() => {
+                userDataDB = null;
+                switchView('login-view');
+            });
+        });
+
+        // 🔵 GENERATE API KEY
+        document.getElementById('generate-api-btn').addEventListener('click', async () => {
+            const confirmGen = confirm("Generating a new API Key will invalidate the old one. Continue?");
+            if(!confirmGen) return;
+
+            const btn = document.getElementById('generate-api-btn');
+            btn.innerText = "Generating...";
+            btn.disabled = true;
+
+            const newApiKey = "auth_" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+            try {
+                await updateDoc(doc(db, "users", currentUser.uid), { apiKey: newApiKey });
+                userDataDB.apiKey = newApiKey;
+                document.getElementById('api-key-display').value = newApiKey;
+                alert("New API Key Generated Successfully!");
+            } catch (error) {
+                alert("Error updating key.");
+            }
+            
+            btn.innerText = "Generate New API Key";
+            btn.disabled = false;
+        });
+
+        // 🔵 OAUTH CONSENT LOGIC (For 3rd party apps)
+        function showConsentUI() {
+            switchView('consent-view');
+            document.getElementById('consent-avatar').src = userDataDB.photoURL || "https://via.placeholder.com/150";
+            document.getElementById('consent-name').innerText = userDataDB.username;
+            document.getElementById('consent-email').innerText = userDataDB.email;
         }
 
-        // Show Consent UI
-        function showConsentUI(user) {
-            viewLoading.classList.add('hidden');
-            viewLogin.classList.add('hidden');
-            viewConsent.classList.remove('hidden');
-
-            document.getElementById('user-avatar').src = user.photoURL || "https://via.placeholder.com/150";
-            document.getElementById('user-name').innerText = user.displayName || "User";
-            document.getElementById('user-email').innerText = user.email;
-
-            if(!redirectUri) {
-                document.querySelector('#consent-view p.text-gray-700').innerText = "Testing Mode: App is working perfectly. Provide redirect_uri in URL for external app flow.";
-                document.getElementById('accept-btn').disabled = true;
-                document.getElementById('accept-btn').classList.add('opacity-50', 'cursor-not-allowed');
-            }
-        }
-
-        // Accept & Continue
         document.getElementById('accept-btn').addEventListener('click', async () => {
             if(!redirectUri) return;
+            const btn = document.getElementById('accept-btn');
+            btn.innerText = "Redirecting...";
             
             try {
-                const idToken = await auth.currentUser.getIdToken();
-                const username = auth.currentUser.email.split('@')[0];
-                const finalRedirect = `${redirectUri}?token=${idToken}&username=${username}&email=${auth.currentUser.email}`;
+                const idToken = await currentUser.getIdToken();
+                // Send back Token, Username, and Auth ID securely
+                const finalRedirect = `${redirectUri}?token=${idToken}&username=${userDataDB.username}&auth_id=${userDataDB.authId}`;
                 
                 sessionStorage.removeItem('redirect_uri');
                 window.location.href = finalRedirect;
             } catch(e) {
-                alert("Token generation failed: " + e.message);
+                alert("Token error: " + e.message);
             }
         });
 
-        // Cancel
-        document.getElementById('cancel-btn').addEventListener('click', () => {
+        document.getElementById('cancel-consent-btn').addEventListener('click', () => {
             if(redirectUri) {
                 sessionStorage.removeItem('redirect_uri');
                 window.location.href = `${redirectUri}?error=access_denied`;
-            } else {
-                auth.signOut().then(() => window.location.reload());
             }
         });
+
     </script>
 </body>
 </html>
