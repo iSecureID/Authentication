@@ -129,8 +129,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        // Real-time update ke liye "onSnapshot" import kiya gaya hai
-        import { getFirestore, doc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        // 🚨 Yahan pe Realtime Database imports add kiye gaye hain 🚨
+        import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAdZb8GbRCLr0a-eQSl1QEQ8SuOmKQf1So",
@@ -145,7 +145,8 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
+        // Firestore ki jagah Realtime Database intialize ho raha hai
+        const db = getDatabase(app); 
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
 
@@ -171,31 +172,31 @@
             else navbar.classList.add('hidden');
         }
 
-        // 🟢 AUTH STATE LISTENER (With Real-time Firestore Updates)
+        // 🟢 AUTH STATE LISTENER (With Real-time Database Updates)
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
                 loadingText.innerText = "Fetching Profile securely...";
                 
-                // Active view check to prevent aggressive re-routing if user is browsing profile/settings
                 const currentView = views.find(v => !document.getElementById(v).classList.contains('hidden'));
                 if (currentView === 'login-view' || currentView === 'loading-view') {
                     switchView('loading-view');
                 }
 
-                // Unsubscribe previous listener if it exists
-                if (unsubscribeUserSnapshot) unsubscribeUserSnapshot();
+                if (unsubscribeUserSnapshot) {
+                    unsubscribeUserSnapshot(); // Purana listener stop karo
+                }
 
-                // Real-time listener for user data
-                unsubscribeUserSnapshot = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
-                    if (!docSnap.exists()) {
+                // 🚨 Realtime Database (RTDB) ka listener 🚨
+                unsubscribeUserSnapshot = onValue(ref(db, 'users/' + user.uid), (snapshot) => {
+                    if (!snapshot.exists()) {
                         // Naya User Hai - Setup Screen
                         const defaultUsername = user.email.split('@')[0];
                         document.getElementById('setup-username-input').value = defaultUsername;
                         switchView('username-setup-view');
                     } else {
                         // Puraana User Hai - Real-time Data Sync
-                        userDataDB = docSnap.data();
+                        userDataDB = snapshot.val();
                         
                         // Update UI everywhere automatically (Real-time magic)
                         const avatarSrc = userDataDB.photoURL || "https://via.placeholder.com/150";
@@ -216,33 +217,33 @@
                         }
                     }
                 }, (error) => {
-                    console.error("Firestore Error:", error);
-                    alert("Database Error: Make sure your Firestore Rules allow Read/Write operations.");
+                    console.error("Database Error:", error);
+                    alert("Database Error: Check connection or database rules.");
                 });
 
             } else {
                 // Not logged in
                 currentUser = null;
                 userDataDB = null;
-                if (unsubscribeUserSnapshot) unsubscribeUserSnapshot();
+                if (unsubscribeUserSnapshot) {
+                    unsubscribeUserSnapshot(); 
+                    unsubscribeUserSnapshot = null;
+                }
                 switchView('login-view');
             }
         });
 
-        // 🔵 GOOGLE LOGIN (Popup Mode - Completely Fixed Error Handling)
+        // 🔵 GOOGLE LOGIN
         document.getElementById('google-login-btn').addEventListener('click', async () => {
             switchView('loading-view');
             loadingText.innerText = "Waiting for Google Login...";
             
             try {
                 await signInWithPopup(auth, provider);
-                // Success hone par onAuthStateChanged khud handle kar lega
             } catch (error) {
                 console.error("Login Error:", error);
                 
-                // Proper user-friendly error messages
                 if (error.code === 'auth/popup-closed-by-user') {
-                    // User closed the popup intentionally
                     switchView('login-view');
                 } else if (error.code === 'auth/unauthorized-domain') {
                     alert("Domain not authorized in Firebase Console! Please add this domain in Firebase Auth Settings.");
@@ -254,7 +255,7 @@
             }
         });
 
-        // 🔵 SUBMIT NEW USERNAME & REGISTER
+        // 🔵 SUBMIT NEW USERNAME & REGISTER (Realtime Database 'set' use hoga)
         document.getElementById('submit-setup-btn').addEventListener('click', async () => {
             const usernameInput = document.getElementById('setup-username-input').value.trim();
             if(!usernameInput) return alert("Username cannot be empty!");
@@ -273,15 +274,16 @@
                 photoURL: currentUser.photoURL || "",
                 authId: authId,
                 apiKey: "",
-                createdAt: new Date()
+                createdAt: Date.now() // Date for Realtime DB
             };
 
             try {
-                // Ye setDoc automatically onSnapshot trigger kar dega jo Home pe le jayega
-                await setDoc(doc(db, "users", currentUser.uid), newUserObj);
+                // Realtime DB me data set karna
+                await set(ref(db, 'users/' + currentUser.uid), newUserObj);
+                // Set hone par onValue automatically database read karke UI change kar dega
             } catch (error) {
                 console.error("Setup Error:", error);
-                alert("Database Setup Error: Please check Firestore Rules!");
+                alert("Database Setup Error: Please check rules!");
                 btn.disabled = false;
                 btn.innerText = "Register & Continue";
             }
@@ -310,7 +312,7 @@
             });
         });
 
-        // 🔵 GENERATE API KEY (Real-time update)
+        // 🔵 GENERATE API KEY (Realtime DB 'update' use hoga)
         document.getElementById('generate-api-btn').addEventListener('click', async () => {
             const confirmGen = confirm("Generating a new API Key will invalidate the old one. Continue?");
             if(!confirmGen) return;
@@ -322,12 +324,12 @@
             const newApiKey = "isecure_" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
             try {
-                // Sirf update karenge, onSnapshot UI automatically update kar dega
-                await updateDoc(doc(db, "users", currentUser.uid), { apiKey: newApiKey });
+                // Sirf update karenge, onValue UI automatically real-time update kar dega
+                await update(ref(db, 'users/' + currentUser.uid), { apiKey: newApiKey });
                 alert("New API Key Generated Successfully!");
             } catch (error) {
                 console.error("API Key Error:", error);
-                alert("Error updating API key. Check Firestore Rules!");
+                alert("Error updating API key. Check Rules!");
             }
             
             btn.innerText = "Generate New API Key";
