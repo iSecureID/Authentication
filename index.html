@@ -3,8 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iSecureID</title>
+    <meta name="description" content="iSecureID - OAuth Authentication Provider like GitHub">
+    <meta name="theme-color" content="#4F46E5">
+    
+    <title>iSecureID - Secure Authentication</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SEO Meta Tags -->
+    <meta property="og:title" content="iSecureID - OAuth Authentication">
+    <meta property="og:description" content="Login with iSecureID - Secure authentication for your apps">
+    <meta property="og:url" content="https://isecureid.netlify.app">
+    <meta property="og:type" content="website">
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
 
@@ -36,12 +49,22 @@
 
         <!-- 2. Login View -->
         <div id="login-view" class="hidden text-center py-6">
-            <h2 class="text-2xl font-bold mb-6 text-indigo-600">iSecureID</h2>
+            <div class="mb-6">
+                <div class="text-5xl mb-3">🔐</div>
+                <h2 class="text-2xl font-bold mb-2 text-indigo-600">iSecureID</h2>
+                <p class="text-xs text-gray-400">Secure OAuth Provider</p>
+            </div>
             <p class="text-gray-600 mb-6">Login or Register to continue securely.</p>
             <button id="google-login-btn" class="w-full bg-red-500 text-white font-bold py-3 px-4 rounded shadow hover:bg-red-600 transition flex items-center justify-center gap-3">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.389-7.439-7.574s3.344-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.849l3.254-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z"/></svg>
                 Sign in with Google
             </button>
+            
+            <!-- Footer Info -->
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <p class="text-xs text-gray-400">Use iSecureID to login to third-party apps</p>
+                <p class="text-xs text-indigo-500 mt-2 font-mono">https://isecureid.netlify.app</p>
+            </div>
         </div>
 
         <!-- 3. Username Setup View (New User) -->
@@ -52,6 +75,7 @@
             <div class="text-left mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2">Username</label>
                 <input type="text" id="setup-username-input" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter username">
+                <p class="text-xs text-gray-400 mt-1">This will be your iSecureID username</p>
             </div>
             
             <button id="submit-setup-btn" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded hover:bg-indigo-700 transition">
@@ -63,7 +87,13 @@
         <div id="home-view" class="hidden text-center py-10">
             <h2 class="text-2xl font-bold text-gray-800 mb-2">Welcome to iSecureID!</h2>
             <p class="text-gray-600">You are securely logged in.</p>
-            <p class="mt-4 text-sm text-gray-500 bg-gray-50 p-4 rounded border">Use the top right menu to manage your profile or generate API keys for your apps.</p>
+            <div class="mt-6 text-sm text-gray-500 bg-indigo-50 p-4 rounded border border-indigo-100">
+                <p class="font-semibold text-indigo-700 mb-2">🎯 Developer Guide</p>
+                <p class="text-left mb-2">Use this URL in your apps:</p>
+                <code class="block bg-white p-2 rounded text-xs font-mono border break-all">
+                    https://isecureid.netlify.app/?redirect_uri=YOUR_CALLBACK_URL
+                </code>
+            </div>
         </div>
 
         <!-- 5. Profile View -->
@@ -79,6 +109,7 @@
             <div class="text-left mb-6">
                 <label class="text-xs text-gray-500 uppercase font-bold">Authentication ID (6-digit)</label>
                 <div id="profile-auth-id" class="bg-gray-100 p-2 rounded text-indigo-700 font-bold font-mono mt-1 tracking-widest text-lg"></div>
+                <p class="text-xs text-gray-400 mt-1">Share this ID with trusted apps only</p>
             </div>
 
             <button id="logout-btn" class="w-full bg-red-500 text-white font-bold py-2 px-4 rounded hover:bg-red-600 transition">
@@ -94,13 +125,23 @@
                 <label class="text-xs text-gray-500 uppercase font-bold">Your API Key</label>
                 <div class="flex mt-1 gap-2">
                     <input type="text" id="api-key-display" readonly class="bg-gray-100 p-2 rounded text-gray-700 font-mono w-full text-sm outline-none" value="Not Generated Yet">
+                    <button id="copy-api-key" class="bg-indigo-100 text-indigo-600 px-3 rounded hover:bg-indigo-200 transition text-sm" title="Copy">
+                        📋
+                    </button>
                 </div>
                 <p class="text-xs text-gray-400 mt-2">Use this API key to authenticate users in your 3rd party applications.</p>
             </div>
 
-            <button id="generate-api-btn" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded hover:bg-indigo-700 transition">
+            <button id="generate-api-btn" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded hover:bg-indigo-700 transition mb-4">
                 Generate New API Key
             </button>
+            
+            <div class="bg-yellow-50 border border-yellow-200 rounded p-3 mt-4">
+                <p class="text-xs text-yellow-800">
+                    <strong>⚠️ Integration URL:</strong><br>
+                    <code class="text-xs bg-white px-1 rounded">https://isecureid.netlify.app/?redirect_uri=YOUR_URL</code>
+                </p>
+            </div>
         </div>
 
         <!-- 7. Consent / Accept View (OAuth Flow) -->
@@ -111,15 +152,16 @@
                 <p id="consent-email" class="text-sm text-gray-500"></p>
             </div>
             <div class="bg-indigo-50 border border-indigo-100 rounded p-4 mb-6">
-                <p class="text-gray-800 text-sm font-semibold">An external application is requesting access to your iSecureID account.</p>
+                <p class="text-gray-800 text-sm font-semibold">🔗 External Application Access Request</p>
                 <p class="text-gray-500 text-xs mt-2">They will receive your Auth ID, Username, and Email.</p>
+                <p id="redirect-domain" class="text-xs text-indigo-600 font-mono mt-2 break-all"></p>
             </div>
             
             <button id="accept-btn" class="w-full bg-green-500 text-white font-bold py-3 px-4 rounded shadow hover:bg-green-600 transition mb-3">
-                Authorize Application
+                ✅ Authorize Application
             </button>
             <button id="cancel-consent-btn" class="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded hover:bg-gray-300 transition">
-                Cancel
+                ❌ Cancel
             </button>
         </div>
 
@@ -129,7 +171,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        // 🚨 Yahan pe Realtime Database imports add kiye gaye hain 🚨
         import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
         const firebaseConfig = {
@@ -145,7 +186,6 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        // Firestore ki jagah Realtime Database intialize ho raha hai
         const db = getDatabase(app); 
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
@@ -155,6 +195,16 @@
             sessionStorage.setItem('redirect_uri', urlParams.get('redirect_uri'));
         }
         const redirectUri = sessionStorage.getItem('redirect_uri');
+
+        // Show redirect domain in consent view
+        if(redirectUri) {
+            try {
+                const domain = new URL(redirectUri).hostname;
+                document.getElementById('redirect-domain').innerText = `Requesting domain: ${domain}`;
+            } catch(e) {
+                document.getElementById('redirect-domain').innerText = redirectUri;
+            }
+        }
 
         let currentUser = null;
         let userDataDB = null;
@@ -172,7 +222,6 @@
             else navbar.classList.add('hidden');
         }
 
-        // 🟢 AUTH STATE LISTENER (With Real-time Database Updates)
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
@@ -184,33 +233,31 @@
                 }
 
                 if (unsubscribeUserSnapshot) {
-                    unsubscribeUserSnapshot(); // Purana listener stop karo
+                    unsubscribeUserSnapshot();
                 }
 
-                // 🚨 Realtime Database (RTDB) ka listener 🚨
                 unsubscribeUserSnapshot = onValue(ref(db, 'users/' + user.uid), (snapshot) => {
                     if (!snapshot.exists()) {
-                        // Naya User Hai - Setup Screen
                         const defaultUsername = user.email.split('@')[0];
                         document.getElementById('setup-username-input').value = defaultUsername;
                         switchView('username-setup-view');
                     } else {
-                        // Puraana User Hai - Real-time Data Sync
                         userDataDB = snapshot.val();
                         
-                        // Update UI everywhere automatically (Real-time magic)
                         const avatarSrc = userDataDB.photoURL || "https://via.placeholder.com/150";
                         document.getElementById('nav-avatar').src = avatarSrc;
                         document.getElementById('profile-avatar').src = avatarSrc;
+                        document.getElementById('consent-avatar').src = avatarSrc;
                         document.getElementById('profile-username').innerText = "@" + userDataDB.username;
                         document.getElementById('profile-auth-id').innerText = userDataDB.authId;
+                        document.getElementById('consent-name').innerText = userDataDB.name || userDataDB.username;
+                        document.getElementById('consent-email').innerText = userDataDB.email;
                         document.getElementById('api-key-display').value = userDataDB.apiKey || "No API Key Generated";
 
-                        // First load logic
                         const activeViewNow = views.find(v => !document.getElementById(v).classList.contains('hidden'));
                         if (activeViewNow === 'loading-view' || activeViewNow === 'login-view' || activeViewNow === 'username-setup-view') {
                             if(redirectUri) {
-                                showConsentUI();
+                                switchView('consent-view');
                             } else {
                                 switchView('home-view', true);
                             }
@@ -218,11 +265,10 @@
                     }
                 }, (error) => {
                     console.error("Database Error:", error);
-                    alert("Database Error: Check connection or database rules.");
+                    alert("Database Error: Check Firebase rules!");
                 });
 
             } else {
-                // Not logged in
                 currentUser = null;
                 userDataDB = null;
                 if (unsubscribeUserSnapshot) {
@@ -233,7 +279,6 @@
             }
         });
 
-        // 🔵 GOOGLE LOGIN
         document.getElementById('google-login-btn').addEventListener('click', async () => {
             switchView('loading-view');
             loadingText.innerText = "Waiting for Google Login...";
@@ -246,7 +291,7 @@
                 if (error.code === 'auth/popup-closed-by-user') {
                     switchView('login-view');
                 } else if (error.code === 'auth/unauthorized-domain') {
-                    alert("Domain not authorized in Firebase Console! Please add this domain in Firebase Auth Settings.");
+                    alert("⚠️ Domain not authorized! Add isecureid.netlify.app in Firebase Console → Authentication → Settings → Authorized domains");
                     switchView('login-view');
                 } else {
                     alert(`Login Failed: ${error.message}`);
@@ -255,10 +300,10 @@
             }
         });
 
-        // 🔵 SUBMIT NEW USERNAME & REGISTER (Realtime Database 'set' use hoga)
         document.getElementById('submit-setup-btn').addEventListener('click', async () => {
             const usernameInput = document.getElementById('setup-username-input').value.trim();
             if(!usernameInput) return alert("Username cannot be empty!");
+            if(usernameInput.length < 3) return alert("Username must be at least 3 characters!");
 
             const btn = document.getElementById('submit-setup-btn');
             btn.disabled = true;
@@ -274,47 +319,37 @@
                 photoURL: currentUser.photoURL || "",
                 authId: authId,
                 apiKey: "",
-                createdAt: Date.now() // Date for Realtime DB
+                createdAt: Date.now()
             };
 
             try {
-                // Realtime DB me data set karna
                 await set(ref(db, 'users/' + currentUser.uid), newUserObj);
-                // Set hone par onValue automatically database read karke UI change kar dega
             } catch (error) {
                 console.error("Setup Error:", error);
-                alert("Database Setup Error: Please check rules!");
+                alert("Database Setup Error: " + error.message);
                 btn.disabled = false;
                 btn.innerText = "Register & Continue";
             }
         });
 
-        // 🔵 NAVBAR NAVIGATION
         document.getElementById('nav-logo').addEventListener('click', () => switchView('home-view', true));
-        
-        document.getElementById('nav-profile').addEventListener('click', () => {
-            switchView('profile-view', true);
-        });
+        document.getElementById('nav-profile').addEventListener('click', () => switchView('profile-view', true));
+        document.getElementById('nav-settings').addEventListener('click', () => switchView('settings-view', true));
 
-        document.getElementById('nav-settings').addEventListener('click', () => {
-            switchView('settings-view', true);
-        });
-
-        // 🔵 LOGOUT
         document.getElementById('logout-btn').addEventListener('click', () => {
             const btn = document.getElementById('logout-btn');
             btn.innerText = "Logging out...";
             signOut(auth).then(() => {
                 btn.innerText = "Log Out";
+                sessionStorage.clear();
             }).catch((err) => {
                 alert("Logout Error: " + err.message);
                 btn.innerText = "Log Out";
             });
         });
 
-        // 🔵 GENERATE API KEY (Realtime DB 'update' use hoga)
         document.getElementById('generate-api-btn').addEventListener('click', async () => {
-            const confirmGen = confirm("Generating a new API Key will invalidate the old one. Continue?");
+            const confirmGen = confirm("⚠️ Generating a new API Key will invalidate the old one. Continue?");
             if(!confirmGen) return;
 
             const btn = document.getElementById('generate-api-btn');
@@ -324,26 +359,29 @@
             const newApiKey = "isecure_" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
             try {
-                // Sirf update karenge, onValue UI automatically real-time update kar dega
                 await update(ref(db, 'users/' + currentUser.uid), { apiKey: newApiKey });
-                alert("New API Key Generated Successfully!");
+                alert("✅ New API Key Generated Successfully!");
             } catch (error) {
                 console.error("API Key Error:", error);
-                alert("Error updating API key. Check Rules!");
+                alert("Error: " + error.message);
             }
             
             btn.innerText = "Generate New API Key";
             btn.disabled = false;
         });
 
-        // 🔵 OAUTH CONSENT LOGIC (For 3rd party apps)
-        function showConsentUI() {
-            switchView('consent-view');
-            const avatarSrc = userDataDB.photoURL || "https://via.placeholder.com/150";
-            document.getElementById('consent-avatar').src = avatarSrc;
-            document.getElementById('consent-name').innerText = userDataDB.name || userDataDB.username;
-            document.getElementById('consent-email').innerText = userDataDB.email;
-        }
+        // Copy API Key
+        document.getElementById('copy-api-key').addEventListener('click', () => {
+            const apiKeyValue = document.getElementById('api-key-display').value;
+            if(apiKeyValue === "Not Generated Yet" || apiKeyValue === "No API Key Generated") {
+                return alert("Generate an API key first!");
+            }
+            navigator.clipboard.writeText(apiKeyValue).then(() => {
+                const btn = document.getElementById('copy-api-key');
+                btn.innerText = "✅";
+                setTimeout(() => btn.innerText = "📋", 2000);
+            });
+        });
 
         document.getElementById('accept-btn').addEventListener('click', async () => {
             if(!redirectUri) return;
@@ -353,13 +391,13 @@
             
             try {
                 const idToken = await currentUser.getIdToken();
-                const finalRedirect = `${redirectUri}?token=${idToken}&username=${userDataDB.username}&auth_id=${userDataDB.authId}`;
+                const finalRedirect = `${redirectUri}${redirectUri.includes('?') ? '&' : '?'}token=${idToken}&username=${userDataDB.username}&auth_id=${userDataDB.authId}&email=${userDataDB.email}`;
                 
                 sessionStorage.removeItem('redirect_uri');
                 window.location.href = finalRedirect;
             } catch(e) {
                 alert("Token error: " + e.message);
-                btn.innerText = "Authorize Application";
+                btn.innerText = "✅ Authorize Application";
                 btn.disabled = false;
             }
         });
@@ -367,7 +405,9 @@
         document.getElementById('cancel-consent-btn').addEventListener('click', () => {
             if(redirectUri) {
                 sessionStorage.removeItem('redirect_uri');
-                window.location.href = `${redirectUri}?error=access_denied`;
+                window.location.href = `${redirectUri}${redirectUri.includes('?') ? '&' : '?'}error=access_denied`;
+            } else {
+                switchView('home-view', true);
             }
         });
 
