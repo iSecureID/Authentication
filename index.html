@@ -47,7 +47,8 @@
     <!-- Firebase v10 SDK Setup -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        // Yahan signInWithPopup ki jagah signInWithRedirect aur getRedirectResult import kiya hai
+        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         // YAHAN APNA FIREBASE CONFIG DAALEIN
@@ -68,15 +69,24 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        // Get URL Parameters (Third party app kahan se aayi hai)
+        // Get URL Parameters
         const urlParams = new URLSearchParams(window.location.search);
-        const redirectUri = urlParams.get('redirect_uri'); 
-        const clientId = urlParams.get('client_id'); // Optional: API Key checking ke liye
+        // Kyunki redirect hone ke baad URL change ho jata hai, session storage mein save karna zaroori hai
+        if (urlParams.get('redirect_uri')) {
+            sessionStorage.setItem('redirect_uri', urlParams.get('redirect_uri'));
+        }
+        const redirectUri = sessionStorage.getItem('redirect_uri');
 
         // UI Elements
         const viewLoading = document.getElementById('loading-view');
         const viewLogin = document.getElementById('login-view');
         const viewConsent = document.getElementById('consent-view');
+
+        // Check if returning from Google Login Redirect
+        getRedirectResult(auth).catch((error) => {
+            console.error("Login Redirect Error:", error);
+            alert("Login Error: " + error.message);
+        });
 
         // State change listener
         onAuthStateChanged(auth, async (user) => {
@@ -91,12 +101,10 @@
             }
         });
 
-        // Google Login Action
+        // Google Login Action (Redirect Method for Mobile/Web compatibility)
         document.getElementById('google-login-btn').addEventListener('click', () => {
-            signInWithPopup(auth, provider).catch(error => {
-                console.error("Login failed:", error);
-                alert("Login Error: " + error.message);
-            });
+            // Popup ki jagah ab Redirect use hoga
+            signInWithRedirect(auth, provider);
         });
 
         // Save Data to Firestore
@@ -104,11 +112,9 @@
             const userRef = doc(db, "users", user.uid);
             const docSnap = await getDoc(userRef);
             
-            // Generate simple username from email (e.g., rahul123@gmail -> rahul123)
             let username = user.email.split('@')[0];
 
             if (!docSnap.exists()) {
-                // First time user registration
                 await setDoc(userRef, {
                     uid: user.uid,
                     email: user.email,
@@ -130,9 +136,8 @@
             document.getElementById('user-name').innerText = user.displayName || "User";
             document.getElementById('user-email').innerText = user.email;
 
-            // Agar redirect_uri nahi hai toh error dikhaye
             if(!redirectUri) {
-                document.querySelector('#consent-view p').innerText = "Error: No redirect_uri found in URL.";
+                document.querySelector('#consent-view p').innerText = "Notice: Directly logged in. No external app to redirect to.";
                 document.getElementById('accept-btn').disabled = true;
                 document.getElementById('accept-btn').classList.add('opacity-50', 'cursor-not-allowed');
             }
@@ -142,12 +147,13 @@
         document.getElementById('accept-btn').addEventListener('click', async () => {
             if(!redirectUri) return;
 
-            // Get securely encrypted token from Firebase
             const idToken = await auth.currentUser.getIdToken();
             const username = auth.currentUser.email.split('@')[0];
 
-            // Send data back to the app via URL parameters
             const finalRedirect = `${redirectUri}?token=${idToken}&username=${username}&email=${auth.currentUser.email}`;
+            
+            // Clear session storage after process
+            sessionStorage.removeItem('redirect_uri');
             
             window.location.href = finalRedirect;
         });
@@ -155,6 +161,7 @@
         // Cancel Button Action
         document.getElementById('cancel-btn').addEventListener('click', () => {
             if(redirectUri) {
+                sessionStorage.removeItem('redirect_uri');
                 window.location.href = `${redirectUri}?error=access_denied`;
             } else {
                 auth.signOut();
